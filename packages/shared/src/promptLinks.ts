@@ -1,5 +1,5 @@
 import { DEFAULT_HOSTED_APP_URL } from "./connectAuth.ts";
-import { parseUrl } from "./url.ts";
+import { parseUrl, privateShareOrigin } from "./url.ts";
 
 export const PROMPT_LINK_MAX_PROMPT_LENGTH = 8_000;
 
@@ -196,7 +196,8 @@ export function buildNewThreadLink(input: {
   readonly model?: string | null;
   readonly origin?: string;
 }): string {
-  const url = new URL("/new", input.origin ?? DEFAULT_HOSTED_APP_URL);
+  const origin = privateShareOrigin(input.origin);
+  const url = origin ? new URL("/new", origin) : new URL("t3code://new");
   url.searchParams.set("prompt", input.prompt);
   if (input.repository) {
     url.searchParams.set("repo", `${input.repository.owner}/${input.repository.name}`);

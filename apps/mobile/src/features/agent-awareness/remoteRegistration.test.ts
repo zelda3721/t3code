@@ -321,7 +321,7 @@ describe("makeRelayDeviceRegistrationRequest", () => {
     vi.stubGlobal("__DEV__", false);
     secureStore.clear();
     backgroundRuntime.pending.length = 0;
-    Constants.expoConfig!.extra = {};
+    Constants.expoConfig!.extra = { relay: { url: "https://relay.example.test/" } };
     __resetAgentAwarenessRemoteRegistrationForTest();
     appStateMock.listeners.length = 0;
     registrationRecordStore.current = null;
@@ -356,6 +356,15 @@ describe("makeRelayDeviceRegistrationRequest", () => {
       liveActivitiesEnabled: false,
       notificationsEnabled: false,
     });
+  });
+
+  it.effect("skips native Live Activity push registration in a direct-pairing build", () => {
+    Constants.expoConfig!.extra = {};
+    const activity = { addPushTokenListener: vi.fn() };
+    return Effect.gen(function* () {
+      expect(yield* registerLiveActivityPushToken({ activity: activity as never })).toBe(false);
+      expect(activity.addPushTokenListener).not.toHaveBeenCalled();
+    }).pipe(Effect.provide(layerRelayTest));
   });
 
   it.effect("registers one push-token listener per Live Activity across wrappers", () => {

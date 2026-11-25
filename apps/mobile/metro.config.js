@@ -58,7 +58,12 @@ async function generateMobileThirdPartyLicenses() {
     packageManifests: [{ bundle: "mobile", path: path.join(__dirname, "package.json") }],
   });
 
+  const license = await fs.promises.readFile(path.join(workspaceRoot, "LICENSE"), "utf8");
   await Promise.all([
+    writeFileIfChanged(
+      path.join(generatedLicenseModuleRoot, "license.json"),
+      JSON.stringify(license),
+    ),
     writeFileIfChanged(
       path.join(generatedLicenseModuleRoot, "index.js"),
       `module.exports = ${JSON.stringify(manifest)};\n`,

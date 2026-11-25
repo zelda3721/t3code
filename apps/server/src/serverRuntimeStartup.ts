@@ -171,11 +171,11 @@ const recordStartupHeartbeat = Effect.gen(function* () {
     ),
   );
 
-  yield* analytics.record("server.boot.heartbeat", {
+  const queued = yield* analytics.record("server.boot.heartbeat", {
     threadCount,
     projectCount,
   });
-  yield* analytics.recordOwners(yield* getServerOwners, "server");
+  if (queued) yield* analytics.recordOwners(yield* getServerOwners, "server");
 });
 
 const getAutoBootstrapThreadModelSelection = (): ModelSelection => ({

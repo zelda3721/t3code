@@ -94,7 +94,3 @@ export const readRelayConnection = Effect.all([
     url && environmentCredential ? { url, environmentCredential } : null,
   ),
 );
-
-export const readHoldWebhooksWhileOffline = readSecretString(
-  HOLD_WEBHOOKS_WHILE_OFFLINE_SECRET,
-).pipe(Effect.map((value) => value === "true"));

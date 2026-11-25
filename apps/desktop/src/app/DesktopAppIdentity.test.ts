@@ -154,19 +154,19 @@ describe("DesktopAppIdentity", () => {
         const identity = yield* DesktopAppIdentity.DesktopAppIdentity;
         const userDataPath = yield* identity.resolveUserDataPath;
 
-        assert.equal(userDataPath, "/Users/alice/Library/Application Support/t3code-v2");
+        assert.equal(userDataPath, "/Users/alice/Library/Application Support/t3code-private");
       }),
       { legacyPathExists: true },
     ),
   );
 
-  it.effect("keeps using the legacy development profile", () =>
+  it.effect("isolates the private macOS development profile", () =>
     withIdentity(
       Effect.gen(function* () {
         const identity = yield* DesktopAppIdentity.DesktopAppIdentity;
         assert.equal(
           yield* identity.resolveUserDataPath,
-          "/Users/alice/Library/Application Support/T3 Code (Dev)",
+          "/Users/alice/Library/Application Support/t3code-private-dev",
         );
       }),
       {

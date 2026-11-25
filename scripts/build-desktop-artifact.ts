@@ -63,7 +63,7 @@ import { Command, Flag } from "effect/cli";
 import { ChildProcess, ChildProcessSpawner } from "effect/process";
 
 const LINUX_ICON_SIZES = [16, 22, 24, 32, 48, 64, 128, 256, 512] as const;
-const DESKTOP_APP_ID = "com.t3tools.t3code";
+const MAC_PRIVATE_APP_ID = "com.zelda3721.t3code.desktop";
 const APPLE_TEAM_ID_PATTERN = /^[A-Z0-9]{10}$/u;
 
 const BuildPlatform = Schema.Literals(["mac", "linux", "win"]);
@@ -1296,7 +1296,7 @@ export function resolveMacPasskeySigningConfiguration(
   }
 
   return {
-    appId: DESKTOP_APP_ID,
+    appId: MAC_PRIVATE_APP_ID,
     teamId,
     rpDomains: uniqueRpDomains,
     provisioningProfilePath,
@@ -2821,8 +2821,8 @@ export const createBuildConfig = Effect.fn("createBuildConfig")(function* (
 ) {
   const buildConfig: Record<string, unknown> = {
     afterPack: (yield* Path.Path).join(yield* RepoRoot, "scripts/prepare-server-compile-cache.cjs"),
-    appId: DESKTOP_APP_ID,
-    productName: resolveDesktopProductName(version),
+    appId: platform === "mac" ? MAC_PRIVATE_APP_ID : "com.t3tools.t3code",
+    productName: platform === "mac" ? "T3 Code Private" : resolveDesktopProductName(version),
     artifactName: "T3-Code-${version}-${arch}.${ext}",
     electronLanguages: [...DESKTOP_ELECTRON_LANGUAGES],
     files: [
@@ -2916,7 +2916,9 @@ export const createBuildConfig = Effect.fn("createBuildConfig")(function* (
           role: "Viewer",
         },
       ],
-      ...(signed ? { sign: path.join(repoRoot, "scripts/sign-macos.ts") } : {}),
+      ...(signed
+        ? { sign: path.join(repoRoot, "scripts/sign-macos.ts") }
+        : { identity: "-", hardenedRuntime: false }),
       ...(macPasskeySigning
         ? {
             entitlements: macPasskeySigning.entitlementsPath,

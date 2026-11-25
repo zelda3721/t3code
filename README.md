@@ -1,3 +1,9 @@
+## Personal Mac and iPhone build
+
+This is an unofficial, personal-use fork of T3 Code. Build the private apps from this checkout. The download and App Store links below refer to the upstream releases.
+
+The Mac host and iPhone app support direct pairing over Tailscale. On the Mac, enable **Settings → Sharing & access → Tailscale HTTPS**, create a pairing link for your Mac's tailnet address, and scan it in the iPhone app. The private host disables upstream product analytics, T3 Connect and upstream automatic updates. The iPhone build also disables upstream crash reports and Expo updates. See [privacy and diagnostics](docs/user/telemetry.md), [Mac build prerequisites](docs/operations/00_development.md#desktop-artifacts) and [local iPhone builds](apps/mobile/README.md).
+
 <p align="center">
   <a href="https://t3.codes">
     <img src="./assets/prod/t3-black-web-icon-192x192.png" width="80" height="80" alt="T3 Code logo" />

@@ -10,6 +10,13 @@ import {
 } from "./appLinking";
 
 describe("shouldHandleAppLink", () => {
+  it.each(["t3code://threads/env/thread", "t3code://new?prompt=Fix%20this"])(
+    "accepts private sharing links with cloud services disabled: %s",
+    (url) => {
+      expect(shouldHandleAppLink(url, false)).toBe(true);
+    },
+  );
+
   it.each(["t3code://", "t3code:///", "t3code-dev://", "t3code-preview://"])(
     "ignores scheme-only URL %s",
     (url) => {

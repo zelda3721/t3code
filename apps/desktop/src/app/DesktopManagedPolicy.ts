@@ -8,6 +8,8 @@ import type { ManagedPolicyDocument } from "@t3tools/contracts";
 import {
   layerWindowsRegistry,
   ManagedPolicyFileError,
+  managedPolicyPath,
+  privateBuildPolicy,
   readManagedPolicy,
   WindowsRegistry,
 } from "@t3tools/shared/managedPolicyFile";
@@ -37,6 +39,10 @@ export const layer = Layer.effect(
     const { platform } = yield* DesktopEnvironment.DesktopEnvironment;
     const read = yield* Effect.cached(
       readManagedPolicy(platform).pipe(
+        Effect.map((found) => ({
+          source: found?.source ?? managedPolicyPath(platform),
+          document: privateBuildPolicy(found?.document),
+        })),
         Effect.provideService(FileSystem.FileSystem, yield* FileSystem.FileSystem),
         Effect.provideService(
           ChildProcessSpawner.ChildProcessSpawner,

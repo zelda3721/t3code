@@ -180,11 +180,11 @@ function readRelayConfig(): { readonly url: string } | null {
 }
 
 function canRegisterRemoteLiveActivities(): boolean {
-  return Platform.OS === "ios";
+  return Platform.OS === "ios" && readRelayConfig() !== null;
 }
 
 function canRegisterPushNotifications(): boolean {
-  return Platform.OS === "ios" || Platform.OS === "android";
+  return supportsAgentAwarenessPush();
 }
 
 function shouldRegisterAgentAwarenessDeviceForProvider(
@@ -280,7 +280,7 @@ function iosMajorVersion(): number {
 
 const nativePushTokenRegistration = Effect.fn("remoteRegistration.nativePushTokenRegistration")(
   function* (observedPushToken?: string) {
-    if (!canRegisterPushNotifications() || !supportsAgentAwarenessPush()) {
+    if (!canRegisterPushNotifications()) {
       return { notificationsEnabled: false, pushToken: null, notificationPermissionGranted: false };
     }
     const permissions = yield* Effect.tryPromise({

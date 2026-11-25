@@ -19,12 +19,6 @@ const runtimeVersionPolicy =
 const personalTeamBundleIdentifier = repoEnv.T3CODE_IOS_PERSONAL_TEAM_BUNDLE_ID?.trim();
 const IOS_BUNDLE_IDENTIFIER_PATTERN = /^[A-Za-z0-9-]+(?:\.[A-Za-z0-9-]+)+$/;
 
-// Compiled into the native project. Without a relay, Observe's native side could dispatch to
-// Expo's own ingest before observe.ts turns it off; `.invalid` never resolves (RFC 6761).
-const observeEndpointUrl = repoEnv.T3CODE_RELAY_URL?.trim()
-  ? new URL("/v1/mobile/observe", repoEnv.T3CODE_RELAY_URL.trim()).toString()
-  : "https://observe.invalid";
-
 const fromRepoRoot = (relativePath: string) => `../../${relativePath}`;
 const androidAdaptiveForeground = "./assets/android-icon-foreground.png";
 
@@ -81,25 +75,22 @@ const VARIANT_CONFIG = {
   development: {
     appName: "T3 Code Dev",
     scheme: "t3code-dev",
-    iosBundleIdentifier: "com.t3tools.t3code.dev",
+    iosBundleIdentifier: "dev.zelda3721.t3code.private.dev",
     androidPackage: "com.t3tools.t3code.dev",
-    relyingParty: "clerk.t3.codes",
     assets: DEVELOPMENT_ASSETS,
   },
   preview: {
     appName: "T3 Code Preview",
     scheme: "t3code-preview",
-    iosBundleIdentifier: "com.t3tools.t3code.preview",
+    iosBundleIdentifier: "dev.zelda3721.t3code.private.preview",
     androidPackage: "com.t3tools.t3code.preview",
-    relyingParty: "clerk.t3.codes",
     assets: PREVIEW_ASSETS,
   },
   production: {
     appName: "T3 Code",
     scheme: "t3code",
-    iosBundleIdentifier: "com.t3tools.t3code",
+    iosBundleIdentifier: "dev.zelda3721.t3code.private",
     androidPackage: "com.t3tools.t3code",
-    relyingParty: "clerk.t3.codes",
     assets: RELEASE_ASSETS,
   },
 } as const;
@@ -118,8 +109,6 @@ function resolveAppVariant(value: string | undefined): AppVariant {
 }
 
 const variant = VARIANT_CONFIG[APP_VARIANT];
-// Copied thread links open the app. app.t3.codes/.well-known lists every variant's identifiers.
-const HOSTED_APP_HOST = "app.t3.codes";
 const iosBundleIdentifier = isIosPersonalTeamBuild
   ? personalTeamBundleIdentifier!
   : variant.iosBundleIdentifier;
@@ -135,9 +124,7 @@ const widgetsPlugin: NonNullable<ExpoConfig["plugins"]>[number] = [
   {
     bundleIdentifier: `${iosBundleIdentifier}.widgets`,
     groupIdentifier: `group.${iosBundleIdentifier}`,
-    enablePushNotifications: true,
-    // Frequent updates need the iOS entitlement to avoid early throttling.
-    frequentUpdates: true,
+    enablePushNotifications: false,
     enableAndroid: true,
     widgets: [
       {
@@ -245,27 +232,13 @@ const config: ExpoConfig = {
   orientation: "portrait",
   icon: variant.assets.appIcon,
   userInterfaceStyle: "automatic",
-  updates: {
-    enabled: repoEnv.T3CODE_MOBILE_UPDATES_ENABLED !== "0",
-    url: "https://u.expo.dev/d763fcb8-d37c-41ea-a773-b54a0ab4a454",
-    checkAutomatically: "ON_LOAD",
-    fallbackToCacheTimeout: 0,
-  },
+  updates: { enabled: false, checkAutomatically: "NEVER" },
   ios: {
     icon: variant.assets.iosIcon,
     supportsTablet: true,
     requireFullScreen: process.env.T3_SHOWCASE_CAPTURE_BUILD === "1",
     bundleIdentifier: iosBundleIdentifier,
-    // Avoid Personal Team fallback: it cannot sign App Groups, Apple sign-in or push entitlements.
-    appleTeamId: "ARK85ZXQ4Z",
-    associatedDomains: [
-      `applinks:${variant.relyingParty}`,
-      `webcredentials:${variant.relyingParty}`,
-      `applinks:${HOSTED_APP_HOST}`,
-    ],
-    entitlements: {
-      "keychain-access-groups": [`$(AppIdentifierPrefix)${variant.iosBundleIdentifier}`],
-    },
+    ...(repoEnv.T3CODE_IOS_TEAM_ID ? { appleTeamId: repoEnv.T3CODE_IOS_TEAM_ID } : {}),
     infoPlist: {
       UISupportedInterfaceOrientations: [
         "UIInterfaceOrientationPortrait",
@@ -314,14 +287,6 @@ const config: ExpoConfig = {
     predictiveBackGestureEnabled: true,
     // expo-sensors declares this for its pedometer, which the app does not use.
     blockedPermissions: ["android.permission.ACTIVITY_RECOGNITION"],
-    intentFilters: [
-      {
-        action: "VIEW",
-        autoVerify: true,
-        data: [{ scheme: "https", host: HOSTED_APP_HOST, pathPrefix: "/threads/" }],
-        category: ["BROWSABLE", "DEFAULT"],
-      },
-    ],
   },
   web: {
     favicon: variant.assets.appIcon,
@@ -367,11 +332,9 @@ const config: ExpoConfig = {
       {
         icon: variant.assets.androidNotificationIcon,
         color: variant.assets.androidNotificationColor,
-        mode: APP_VARIANT === "development" ? "development" : "production",
+        enableRemoteNotifications: false,
       },
     ],
-    // Gate Clerk here: withoutIosPersonalTeamCapabilities runs too early to strip its entitlement.
-    ["@clerk/expo", { theme: "./clerk-theme.json", appleSignIn: !isIosPersonalTeamBuild }],
     "expo-web-browser",
     [
       "expo-quick-actions",
@@ -467,34 +430,12 @@ const config: ExpoConfig = {
     // MainActivity mods run in reverse order; extend the tablet-orientation override.
     "./plugins/withAndroidWindowDisplayMetrics.cjs",
     "./plugins/withAndroidTabletOrientation.cjs",
-    ...(isIosPersonalTeamBuild ? ["./plugins/withoutIosPersonalTeamCapabilities.cjs"] : []),
+    ["./plugins/withoutIosPersonalTeamCapabilities.cjs", { personalTeam: isIosPersonalTeamBuild }],
   ],
   extra: {
     appVariant: APP_VARIANT,
     iosPersonalTeamBuild: isIosPersonalTeamBuild,
-    relay: {
-      url: repoEnv.T3CODE_RELAY_URL ?? null,
-    },
-    clerk: {
-      publishableKey: repoEnv.EXPO_PUBLIC_CLERK_PUBLISHABLE_KEY ?? null,
-      jwtTemplate: repoEnv.EXPO_PUBLIC_CLERK_JWT_TEMPLATE ?? null,
-    },
-    // Clerk reads these exact names at prebuild. Omit unset values: manifest null becomes truthy {}.
-    EXPO_PUBLIC_CLERK_GOOGLE_WEB_CLIENT_ID: repoEnv.EXPO_PUBLIC_CLERK_GOOGLE_WEB_CLIENT_ID,
-    EXPO_PUBLIC_CLERK_GOOGLE_IOS_CLIENT_ID: repoEnv.EXPO_PUBLIC_CLERK_GOOGLE_IOS_CLIENT_ID,
-    EXPO_PUBLIC_CLERK_GOOGLE_ANDROID_CLIENT_ID: repoEnv.EXPO_PUBLIC_CLERK_GOOGLE_ANDROID_CLIENT_ID,
-    EXPO_PUBLIC_CLERK_GOOGLE_IOS_URL_SCHEME: repoEnv.EXPO_PUBLIC_CLERK_GOOGLE_IOS_URL_SCHEME,
-    observability: {
-      tracesUrl: repoEnv.EXPO_PUBLIC_OTLP_TRACES_URL ?? "https://api.axiom.co/v1/traces",
-      tracesDataset: repoEnv.EXPO_PUBLIC_OTLP_TRACES_DATASET ?? null,
-      tracesToken: repoEnv.EXPO_PUBLIC_OTLP_TRACES_TOKEN ?? null,
-    },
-    eas: {
-      projectId: "d763fcb8-d37c-41ea-a773-b54a0ab4a454",
-      observe: { endpointUrl: observeEndpointUrl },
-    },
   },
-  owner: "pingdotgg",
   experiments: {
     // Metro only runs babel-plugin-react-compiler when this is set; see src/reactCompilerCoverage.test.ts.
     reactCompiler: true,

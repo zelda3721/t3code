@@ -1004,4 +1004,10 @@ export const make = Effect.gen(function* () {
   });
 });
 
-export const layer = Layer.effect(AgentAwarenessRelay, make);
+// Private builds never register the publisher, even when an existing store has relay credentials.
+export const layer = Layer.succeed(AgentAwarenessRelay, {
+  start: Effect.fn("AgentAwarenessRelay.start")(() => Effect.void),
+  publishThread: Effect.fn("AgentAwarenessRelay.publishThread")(() => Effect.void),
+  requestCatchUp: Effect.fn("AgentAwarenessRelay.requestCatchUp")(() => Effect.void),
+  drain: Effect.void,
+});

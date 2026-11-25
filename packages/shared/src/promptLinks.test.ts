@@ -101,7 +101,8 @@ describe("link round trips", () => {
       model: "opus",
     });
     const path = promptLinkAppPath(link);
-    expect(path).toBe(new URL(link).pathname + new URL(link).search);
+    expect(link.startsWith("t3code://new?")).toBe(true);
+    expect(path).toBe("/new" + new URL(link).search);
     const parsed = parseNewThreadLink(new URL(link).search);
     expect(parsed.ok && parsed.value.kind === "new" && parsed.value.prompt.text).toBe(
       "Swear count & rating?",

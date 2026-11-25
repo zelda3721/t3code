@@ -602,3 +602,21 @@ export const readManagedPolicy = Effect.fn("readManagedPolicy")(function* (
   }
   return platformPolicy ?? (file === undefined ? undefined : { source: filePath, document: file });
 });
+
+/** These limits ship with the private build, including on machines without an administrator policy. */
+export function privateBuildPolicy(document?: ManagedPolicyDocument): ManagedPolicyDocument {
+  const settings = { ...document?.settings };
+  delete settings["agentFeedback.mode"];
+  return {
+    schemaVersion: 1,
+    organization: "Personal",
+    ...document,
+    settings: { ...settings, agentFeedback: { value: { mode: "off" }, locked: true } },
+    limits: {
+      ...document?.limits,
+      connect: false,
+      telemetry: false,
+      updates: { mode: "off" },
+    },
+  };
+}

@@ -99,17 +99,20 @@ describe("resolveThreadReferenceCopyTarget", () => {
       ],
     });
     // The plain text opens the thread anywhere and pastes back as the copied record's chip.
-    expect(target!.value).toBe("https://app.t3.codes/threads/env-1/thread-1");
+    expect(target!.value).toBe("t3code://threads/env-1/thread-1");
     expect(threadLinkContextReferences(target!.value, pasted!.records, () => undefined)).toEqual({
       text: `[Fix the login flow](t3-context://v1/thread/${pasted!.records[0]!.contextId})`,
       records: pasted!.records,
     });
   });
 
-  it("links through the build's hosted app", () => {
+  it("links through a private origin and keeps vendor links on-device", () => {
     expect(
       resolveThreadReferenceCopyTarget({ ...thread, hostedAppUrl: "https://preview.t3.codes" })
         ?.value,
-    ).toBe("https://preview.t3.codes/threads/env-1/thread-1");
+    ).toBe("t3code://threads/env-1/thread-1");
+    expect(
+      resolveThreadReferenceCopyTarget({ ...thread, hostedAppUrl: "https://mac.test" })?.value,
+    ).toBe("https://mac.test/threads/env-1/thread-1");
   });
 });

@@ -28,7 +28,7 @@ import {
 import { useCopyToClipboard } from "../../hooks/useCopyToClipboard";
 import { cn } from "../../lib/utils";
 import { formatElapsedDurationLabel, formatExpiresInLabel } from "../../timestampFormat";
-import { resolveDesktopPairingUrl, resolveHostedPairingUrl } from "./pairingUrls";
+import { resolveDesktopPairingUrl } from "./pairingUrls";
 import {
   canRevokeOtherClients,
   isQrShareableEndpoint,
@@ -169,10 +169,6 @@ const PairingLinkListRow = memo(function PairingLinkListRow({
   const qrPanelId = useId();
 
   const currentOriginPairingUrl = credential ? resolveCurrentOriginPairingUrl(credential) : null;
-  const hostedPairingUrl =
-    credential && endpointUrl != null && endpointUrl !== ""
-      ? resolveHostedPairingUrl(endpointUrl, credential)
-      : null;
   const endpointPairingUrl = (() => {
     const endpoint = selectPairingEndpoint(endpoints, defaultEndpointKey);
     return endpoint && credential
@@ -208,7 +204,7 @@ const PairingLinkListRow = memo(function PairingLinkListRow({
   const shareablePairingUrl =
     endpointPairingUrl ??
     (credential && endpointUrl != null && endpointUrl !== ""
-      ? (hostedPairingUrl ?? resolveDesktopPairingUrl(endpointUrl, credential))
+      ? resolveDesktopPairingUrl(endpointUrl, credential)
       : servedByEnvironment
         ? currentOriginPairingUrl
         : null);

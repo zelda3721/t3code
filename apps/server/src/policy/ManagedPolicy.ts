@@ -21,6 +21,7 @@ import {
   ManagedPolicyFileError,
   managedPolicyPath,
   layerWindowsRegistry,
+  privateBuildPolicy,
   readManagedPolicy,
   readManagedPolicyFile,
 } from "@t3tools/shared/managedPolicyFile";
@@ -187,14 +188,20 @@ const make = Effect.gen(function* () {
       : Option.none<string>();
   const platform = yield* HostProcess.Platform;
   const policy = yield* Option.match(devPath, {
-    onSome: load,
+    onSome: (path) =>
+      readManagedPolicyFile(path).pipe(
+        Effect.flatMap((document) => fromDocument(path, privateBuildPolicy(document))),
+      ),
     onNone: () =>
       readManagedPolicy(
         platform,
         ManagedProviders.knownDriverLabels().map(({ driver }) => driver),
       ).pipe(
         Effect.flatMap((found) =>
-          fromDocument(found?.source ?? managedPolicyPath(platform), found?.document),
+          fromDocument(
+            found?.source ?? managedPolicyPath(platform),
+            privateBuildPolicy(found?.document),
+          ),
         ),
       ),
   });

@@ -10,6 +10,7 @@ import {
   ProviderInstanceId,
 } from "@t3tools/contracts";
 import * as HostProcess from "@t3tools/shared/HostProcess";
+import { privateBuildPolicy } from "@t3tools/shared/managedPolicyFile";
 
 import { BUILT_IN_DRIVERS } from "../provider/builtInDrivers.ts";
 import * as ManagedPolicy from "./ManagedPolicy.ts";
@@ -492,3 +493,27 @@ it.layer(NodeServices.layer)("ManagedPolicy.load", (it) => {
       }),
   );
 });
+
+it.effect("enforces private build limits while retaining private-network pairing", () =>
+  Effect.gen(function* () {
+    for (const machinePolicy of [
+      undefined,
+      {
+        schemaVersion: 1 as const,
+        organization: "Local",
+        limits: { telemetry: true, connect: true, updates: { mode: "auto" as const } },
+        settings: { "agentFeedback.mode": { value: "auto", locked: true } },
+      },
+    ]) {
+      const policy = yield* ManagedPolicy.fromDocument(
+        "private build",
+        privateBuildPolicy(machinePolicy),
+      );
+      assert.isFalse(policy.summary?.limits?.telemetry);
+      assert.isFalse(policy.summary?.limits?.connect);
+      assert.strictEqual(policy.summary?.limits?.updates?.mode, "off");
+      assert.isUndefined(policy.summary?.limits?.clients);
+      assert.include(policy.summary?.lockedSettings ?? [], "agentFeedback");
+    }
+  }).pipe(Effect.provideService(HostProcess.Platform, "darwin")),
+);

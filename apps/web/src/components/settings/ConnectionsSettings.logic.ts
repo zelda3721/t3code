@@ -2,7 +2,7 @@ import { thrownErrorMessage } from "@t3tools/client-runtime/errors";
 import * as DateTime from "effect/DateTime";
 import { msg } from "gt-react";
 
-import { resolveDesktopPairingUrl, resolveHostedPairingUrl } from "./pairingUrls";
+import { resolveDesktopPairingUrl } from "./pairingUrls";
 import { getPairingTokenFromUrl, setPairingTokenOnUrl } from "@t3tools/shared/remote";
 import { readHostedPairingRequest } from "../../hostedPairing";
 import { m, type MessageResolver } from "../../i18n/messages";
@@ -440,12 +440,6 @@ export function resolveAdvertisedEndpointPairingUrl(
   endpoint: AdvertisedEndpoint,
   credential: string,
 ): string {
-  if (endpoint.compatibility.hostedHttpsApp === "compatible") {
-    return (
-      resolveHostedPairingUrl(endpoint.httpBaseUrl, credential) ??
-      resolveDesktopPairingUrl(endpoint.httpBaseUrl, credential)
-    );
-  }
   return resolveDesktopPairingUrl(endpoint.httpBaseUrl, credential);
 }
 

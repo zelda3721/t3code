@@ -1,13 +1,19 @@
+import license from "@t3tools/mobile-third-party-licenses/license.json";
 import { useGT } from "gt-react-native";
-import { SettingsLegalDocumentRouteScreen } from "./components/SettingsLegalDocumentRouteScreen";
-import { LEGAL_URL } from "./lib/legal-document-url";
+
+import { AppText } from "../../components/ui/AppText";
+import { ScreenScrollView } from "../../components/ui/ScreenScrollView";
+import { SettingsScreen } from "./components/SettingsScreen";
 
 export function SettingsLegalRouteScreen() {
   const gt = useGT();
   return (
-    <SettingsLegalDocumentRouteScreen
-      documentName={gt("Legal", { $context: "legal documents page title" })}
-      documentUrl={LEGAL_URL}
-    />
+    <SettingsScreen title={gt("Legal", { $context: "legal documents page title" })}>
+      <ScreenScrollView contentInsetAdjustmentBehavior="automatic" contentContainerClassName="p-5">
+        <AppText selectable className="text-base leading-normal text-foreground">
+          {license}
+        </AppText>
+      </ScreenScrollView>
+    </SettingsScreen>
   );
 }

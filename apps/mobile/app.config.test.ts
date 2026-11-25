@@ -1,12 +1,14 @@
-import { DEFAULT_HOSTED_APP_URL } from "@t3tools/shared/connectAuth";
 import { afterEach, expect, it, vi } from "vite-plus/test";
-
-import appleAppSiteAssociation from "../web/public/.well-known/apple-app-site-association.json";
-import assetLinks from "../web/public/.well-known/assetlinks.json";
 
 // Keep config parsing independent of local env files and build credentials.
 vi.mock("../../scripts/lib/public-config.ts", () => ({
-  loadRepoEnv: () => ({ APP_VARIANT: process.env.APP_VARIANT }),
+  loadRepoEnv: () => ({
+    APP_VARIANT: process.env.APP_VARIANT,
+    T3CODE_RELAY_URL: "https://relay.example.test",
+    T3CODE_MOBILE_UPDATES_ENABLED: "1",
+    EXPO_PUBLIC_CLERK_PUBLISHABLE_KEY: "pk_test",
+    EXPO_PUBLIC_OTLP_TRACES_TOKEN: "trace-test",
+  }),
 }));
 
 afterEach(() => {
@@ -30,18 +32,23 @@ it.each([
   ["development", "com.t3tools.t3code.dev"],
   ["preview", "com.t3tools.t3code.preview"],
   ["production", "com.t3tools.t3code"],
-])("keeps the iOS and Android identifiers for APP_VARIANT=%j", async (value, identifier) => {
-  const config = await loadConfig(value);
-  expect(config.ios?.bundleIdentifier).toBe(identifier);
-  expect(config.android?.package).toBe(identifier);
-  // Copied thread links open this app only while app.t3.codes lists it.
-  const host = new URL(DEFAULT_HOSTED_APP_URL).host;
-  expect(config.ios?.associatedDomains).toContain(`applinks:${host}`);
-  expect(appleAppSiteAssociation.applinks.details[0]?.appIDs).toContain(
-    `${config.ios?.appleTeamId}.${identifier}`,
-  );
-  expect(config.android?.intentFilters?.[0]?.data).toEqual([
-    { scheme: "https", host, pathPrefix: "/threads/" },
-  ]);
-  expect(assetLinks.map((link) => link.target.package_name)).toContain(identifier);
-});
+])(
+  "uses a private iOS identity and disables upstream services for %j",
+  async (value, identifier) => {
+    const config = await loadConfig(value);
+    expect(config.ios?.bundleIdentifier).toBe(
+      identifier.replace("com.t3tools.t3code", "dev.zelda3721.t3code.private"),
+    );
+    expect(config.android?.package).toBe(identifier);
+    expect(config.updates).toEqual({ enabled: false, checkAutomatically: "NEVER" });
+    expect(config.plugins).toContainEqual([
+      "expo-notifications",
+      expect.objectContaining({ enableRemoteNotifications: false }),
+    ]);
+    expect(config.ios?.associatedDomains).toBeUndefined();
+    expect(config.android?.intentFilters).toBeUndefined();
+    for (const key of ["clerk", "relay", "observability", "eas"]) {
+      expect(config.extra).not.toHaveProperty(key);
+    }
+  },
+);
